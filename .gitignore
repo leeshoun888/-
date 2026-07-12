@@ -1,0 +1,6 @@
+.DS_Store
+app/node_modules/
+app/dist/
+app/.npm-cache/
+자료함/사진/
+자료함/영상/

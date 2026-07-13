@@ -24,6 +24,8 @@ const previewScreen = PREVIEW_SCREENS.has(DEV_PREVIEW?.get("screen")) ? DEV_PREV
 const previewChapter = DEV_PREVIEW?.has("chapter")
   ? Math.min(chapters.length - 1, Math.max(0, Number.parseInt(DEV_PREVIEW.get("chapter"), 10) - 1 || 0))
   : null;
+const FINALE_PHASES = new Set(["journey", "convergence", "gift", "open", "reveal"]);
+const previewFinalePhase = FINALE_PHASES.has(DEV_PREVIEW?.get("finale")) ? DEV_PREVIEW.get("finale") : null;
 
 function playChime(enabled, notes = [523.25, 659.25, 783.99]) {
   if (!enabled || typeof window === "undefined") return;
@@ -44,6 +46,67 @@ function playChime(enabled, notes = [523.25, 659.25, 783.99]) {
     oscillator.stop(context.currentTime + index * 0.09 + 0.48);
   });
   window.setTimeout(() => context.close(), 900);
+}
+
+function playFinaleCue(enabled, cue) {
+  if (!enabled || typeof window === "undefined") return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  const context = new AudioContext();
+  const master = context.createGain();
+  master.gain.setValueAtTime(0.0001, context.currentTime);
+  master.gain.exponentialRampToValueAtTime(0.34, context.currentTime + 0.04);
+  master.connect(context.destination);
+
+  const tone = ({ frequency, start = 0, duration = 0.5, gain = 0.12, type = "sine", endFrequency }) => {
+    const oscillator = context.createOscillator();
+    const envelope = context.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, context.currentTime + start);
+    if (endFrequency) oscillator.frequency.exponentialRampToValueAtTime(endFrequency, context.currentTime + start + duration);
+    envelope.gain.setValueAtTime(0.0001, context.currentTime + start);
+    envelope.gain.exponentialRampToValueAtTime(gain, context.currentTime + start + 0.025);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + start + duration);
+    oscillator.connect(envelope);
+    envelope.connect(master);
+    oscillator.start(context.currentTime + start);
+    oscillator.stop(context.currentTime + start + duration + 0.04);
+  };
+
+  const noise = (start, duration, gainValue = 0.06) => {
+    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
+    const channel = buffer.getChannelData(0);
+    for (let index = 0; index < channel.length; index += 1) channel[index] = Math.random() * 2 - 1;
+    const source = context.createBufferSource();
+    const filter = context.createBiquadFilter();
+    const envelope = context.createGain();
+    source.buffer = buffer;
+    filter.type = "highpass";
+    filter.frequency.value = cue === "arrival" ? 680 : 1400;
+    envelope.gain.setValueAtTime(0.0001, context.currentTime + start);
+    envelope.gain.exponentialRampToValueAtTime(gainValue, context.currentTime + start + 0.03);
+    envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + start + duration);
+    source.connect(filter);
+    filter.connect(envelope);
+    envelope.connect(master);
+    source.start(context.currentTime + start);
+  };
+
+  if (cue === "arrival") {
+    tone({ frequency: 120, endFrequency: 920, duration: 1.15, gain: 0.2, type: "sawtooth" });
+    noise(0.1, 1.1, 0.085);
+    [392, 523.25, 659.25, 783.99].forEach((frequency, index) => tone({ frequency, start: 0.72 + index * 0.16, duration: 0.85, gain: 0.1 }));
+    tone({ frequency: 196, start: 0.9, duration: 1.5, gain: 0.08, type: "triangle" });
+  } else {
+    noise(0, 0.72, 0.12);
+    tone({ frequency: 164.81, endFrequency: 659.25, duration: 0.72, gain: 0.2, type: "triangle" });
+    [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((frequency, index) => tone({ frequency, start: 0.12 + index * 0.13, duration: 1.2, gain: 0.115 }));
+    [261.63, 329.63, 392].forEach((frequency) => tone({ frequency, start: 0.38, duration: 2.5, gain: 0.055, type: "sine" }));
+  }
+
+  master.gain.setValueAtTime(0.34, context.currentTime + (cue === "arrival" ? 1.9 : 2.15));
+  master.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + (cue === "arrival" ? 2.7 : 3.25));
+  window.setTimeout(() => context.close(), cue === "arrival" ? 3100 : 3700);
 }
 
 function SoundButton({ enabled, onToggle }) {
@@ -503,26 +566,161 @@ function MissionScreen({ chapter, sound, onBack, onComplete }) {
   );
 }
 
-function FinaleScreen({ sound, onBackToMap }) {
-  const [arrived, setArrived] = useState(false);
-  const [revealed, setRevealed] = useState(false);
+const finaleBurstPieces = Array.from({ length: 26 }, (_, index) => {
+  const angle = (Math.PI * 2 * index) / 26 - Math.PI / 2;
+  const distance = 118 + (index % 5) * 18;
+  return {
+    id: `burst-${index}`,
+    x: Math.cos(angle) * distance,
+    y: Math.sin(angle) * distance,
+    delay: (index % 7) * 0.035,
+    rotate: index % 2 === 0 ? 120 : -140,
+    kind: index % 3,
+  };
+});
+
+function FinaleMemoryOrbit() {
+  return (
+    <motion.div
+      className="final-memory-orbit"
+      initial={{ opacity: 0, scale: 1.7, rotate: -35 }}
+      animate={{ opacity: 1, scale: [1.7, 1, 0.78], rotate: 325 }}
+      transition={{ duration: 2.35, ease: [0.2, 0.72, 0.2, 1] }}
+      aria-hidden="true"
+    >
+      {chapters.map((chapter, index) => (
+        <motion.img
+          key={chapter.id}
+          className="final-orbit-planet"
+          src={`/assets/planets/planet-${String(index + 1).padStart(2, "0")}.webp`}
+          alt=""
+          style={{ transform: `translate(-50%, -50%) rotate(${index * 36}deg) translateY(-132px)` }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0, 1, 0.38] }}
+          transition={{ duration: 2.2, delay: index * 0.025 }}
+        />
+      ))}
+    </motion.div>
+  );
+}
+
+function FinaleBurst() {
+  return (
+    <div className="finale-burst" aria-hidden="true">
+      {finaleBurstPieces.map((piece) => (
+        <motion.span
+          key={piece.id}
+          className={`finale-burst-piece burst-kind-${piece.kind}`}
+          initial={{ x: 0, y: 0, opacity: 0, scale: 0.2, rotate: 0 }}
+          animate={{ x: piece.x, y: piece.y, opacity: [0, 1, 1, 0], scale: [0.2, 1.25, 0.85], rotate: piece.rotate }}
+          transition={{ duration: 1.65, delay: piece.delay, ease: [0.16, 0.8, 0.22, 1] }}
+        >
+          {piece.kind === 0 ? <Heart size={17} weight="fill" /> : piece.kind === 1 ? <Star size={15} weight="fill" /> : <Sparkle size={16} weight="fill" />}
+        </motion.span>
+      ))}
+    </div>
+  );
+}
+
+function FinaleScreen({ sound, onToggleSound, onBackToMap }) {
+  const [phase, setPhase] = useState(previewFinalePhase ?? "journey");
   const [journeyProgress, setJourneyProgress] = useState(0);
+  const [holdProgress, setHoldProgress] = useState(0);
   const journeyDrag = useRef({ active: false, left: 0, width: 1 });
+  const giftHoldFrame = useRef(null);
+  const giftHoldStart = useRef(0);
+  const holdProgressRef = useRef(0);
+  const openedRef = useRef(phase === "open" || phase === "reveal");
+
+  useEffect(() => {
+    ["/assets/finale/gift-closed.webp", "/assets/finale/gift-open.webp", ...chapters.map((_, index) => `/assets/planets/planet-${String(index + 1).padStart(2, "0")}.webp`)].forEach((src) => {
+      const image = new Image();
+      image.src = src;
+    });
+  }, []);
+
+  useEffect(() => {
+    holdProgressRef.current = holdProgress;
+  }, [holdProgress]);
+
+  useEffect(() => {
+    if (phase !== "convergence" && phase !== "open") return undefined;
+    const timeout = window.setTimeout(() => setPhase(phase === "convergence" ? "gift" : "reveal"), phase === "convergence" ? 2450 : 2550);
+    return () => window.clearTimeout(timeout);
+  }, [phase]);
+
+  useEffect(() => () => cancelAnimationFrame(giftHoldFrame.current), []);
 
   const arrive = () => {
-    if (arrived) return;
-    setArrived(true);
-    playChime(sound, [523.25, 659.25, 783.99, 1046.5]);
-    window.setTimeout(() => setRevealed(true), 650);
+    if (phase !== "journey") return;
+    setJourneyProgress(100);
+    setPhase("convergence");
+    playFinaleCue(sound, "arrival");
+    window.navigator.vibrate?.([35, 30, 70]);
   };
 
+  const openGift = () => {
+    if (openedRef.current) return;
+    openedRef.current = true;
+    cancelAnimationFrame(giftHoldFrame.current);
+    setHoldProgress(100);
+    setPhase("open");
+    playFinaleCue(sound, "open");
+    window.navigator.vibrate?.([45, 35, 90, 45, 130]);
+  };
+
+  const startGiftHold = (event) => {
+    if (phase !== "gift" || openedRef.current) return;
+    cancelAnimationFrame(giftHoldFrame.current);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    giftHoldStart.current = performance.now() - holdProgressRef.current * 16;
+    const tick = (now) => {
+      const next = Math.min(100, (now - giftHoldStart.current) / 16);
+      holdProgressRef.current = next;
+      setHoldProgress(next);
+      if (next >= 100) {
+        openGift();
+        return;
+      }
+      giftHoldFrame.current = requestAnimationFrame(tick);
+    };
+    giftHoldFrame.current = requestAnimationFrame(tick);
+  };
+
+  const stopGiftHold = () => {
+    cancelAnimationFrame(giftHoldFrame.current);
+  };
+
+  const tapGift = () => {
+    if (openedRef.current || phase !== "gift") return;
+    const next = Math.min(100, holdProgressRef.current + 25);
+    holdProgressRef.current = next;
+    setHoldProgress(next);
+    playChime(sound, [440 + next * 2.2]);
+    if (next >= 100) window.setTimeout(openGift, 0);
+  };
+
+  const backgroundAnimation = phase === "journey"
+    ? { scale: 1, filter: "brightness(1) saturate(1)" }
+    : phase === "reveal"
+      ? { scale: 1.04, filter: "brightness(0.94) saturate(1.08)" }
+      : { scale: 1.13, filter: "brightness(0.62) saturate(1.16)" };
+
   return (
-    <motion.section className="screen finale-screen" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <img className="finale-bg" src="/assets/gift-finale-bg.jpg" alt="선물 상자가 놓인 반짝이는 추억 행성" />
+    <motion.section className={`screen finale-screen finale-phase-${phase}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <motion.img
+        className="finale-bg finale-cinematic-bg"
+        src="/assets/gift-finale-bg.jpg"
+        alt="선물 상자가 놓인 반짝이는 추억 행성"
+        animate={backgroundAnimation}
+        transition={{ duration: 1.1, ease: [0.2, 0.72, 0.2, 1] }}
+      />
       <div className="screen-shade finale-shade" />
+      <SoundButton enabled={sound} onToggle={onToggleSound} />
+
       <AnimatePresence mode="wait">
-        {!revealed ? (
-          <motion.div className="final-mission" key="mission" exit={{ opacity: 0, y: -20 }}>
+        {phase === "journey" && (
+          <motion.div className="final-mission" key="mission" exit={{ opacity: 0, scale: 1.25, y: -40 }} transition={{ duration: 0.45 }}>
             <span className="eyebrow">FINAL MISSION</span>
             <h2>총총이 별을<br />꽁알이에게 보내줘</h2>
             <p>어려운 문제는 없어. 보고 싶은 마음만 오른쪽으로 살며시 밀어줘.</p>
@@ -534,22 +732,17 @@ function FinaleScreen({ sound, onBackToMap }) {
                 event.currentTarget.setPointerCapture(event.pointerId);
               }}
               onPointerMove={(event) => {
-                if (!journeyDrag.current.active || arrived) return;
+                if (!journeyDrag.current.active || phase !== "journey") return;
                 const travel = journeyDrag.current.width - 56;
                 const offset = Math.min(travel, Math.max(0, event.clientX - journeyDrag.current.left - 28));
                 setJourneyProgress((offset / travel) * 100);
               }}
               onPointerUp={(event) => {
-                if (arrived) return;
                 const travel = journeyDrag.current.width - 56;
                 const offset = Math.min(travel, Math.max(0, event.clientX - journeyDrag.current.left - 28));
                 journeyDrag.current.active = false;
-                if (offset / travel > 0.72) {
-                  setJourneyProgress(100);
-                  arrive();
-                } else {
-                  setJourneyProgress(0);
-                }
+                if (offset / travel > 0.72) arrive();
+                else setJourneyProgress(0);
               }}
               onPointerCancel={() => {
                 journeyDrag.current.active = false;
@@ -559,18 +752,81 @@ function FinaleScreen({ sound, onBackToMap }) {
               <span className="journey-label sender">총총이</span>
               <span className="journey-label receiver">꽁알이</span>
               <Heart className="journey-heart" size={34} weight="fill" />
-              <button
-                className="final-rocket"
-                style={{ transform: `translateX(${journeyProgress * 2.38}px) scale(${arrived ? 1.12 : 1})` }}
-                aria-label="총총이 별을 꽁알이에게 보내기"
-              >
+              <button className="final-rocket" style={{ transform: `translateX(${journeyProgress * 2.38}px)` }} aria-label="총총이 별을 꽁알이에게 보내기">
                 <RocketLaunch size={34} weight="fill" />
               </button>
             </div>
             <span className="drag-hint">오른쪽으로 드래그</span>
           </motion.div>
-        ) : (
-          <motion.div className="gift-reveal" key="gift" initial={{ opacity: 0, scale: 0.84 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 120, damping: 14 }}>
+        )}
+
+        {phase === "convergence" && (
+          <motion.div className="final-cinematic-stage" key="convergence" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.72 }}>
+            <div className="final-cinematic-copy">
+              <span className="eyebrow">MEMORY CONVERGENCE</span>
+              <h2>10개의 추억이<br />하나로 모이는 중</h2>
+              <p>꽁알이와 총총이의 반짝였던 날들이 마지막 선물을 깨우고 있어.</p>
+            </div>
+            <FinaleMemoryOrbit />
+            <motion.img
+              className="final-convergence-gift"
+              src="/assets/finale/gift-closed.webp"
+              alt=""
+              initial={{ opacity: 0, scale: 0.35, rotateY: -70 }}
+              animate={{ opacity: 1, scale: [0.35, 0.82, 0.72], rotateY: 360 }}
+              transition={{ duration: 2.25, ease: [0.18, 0.78, 0.2, 1] }}
+            />
+            <motion.span className="final-cinematic-status" animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 0.8 }}>
+              <Sparkle size={15} weight="fill" /> 추억별 동기화 중
+            </motion.span>
+          </motion.div>
+        )}
+
+        {phase === "gift" && (
+          <motion.div className="final-gift-stage" key="gift-hold" initial={{ opacity: 0, scale: 0.86 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.28 }} transition={{ type: "spring", stiffness: 120, damping: 15 }}>
+            <div className="final-cinematic-copy gift-stage-copy">
+              <span className="eyebrow">ONE LAST TOUCH</span>
+              <h2>꽁알이의 손으로<br />마지막 선물을 열어줘</h2>
+              <p>선물상자를 꾹 누르면 우리 100일 우주의 마지막 문이 열려.</p>
+            </div>
+            <button
+              className="gift-hold-button"
+              onPointerDown={startGiftHold}
+              onPointerUp={stopGiftHold}
+              onPointerCancel={stopGiftHold}
+              onClick={tapGift}
+              aria-label="선물상자를 길게 눌러 열기"
+              style={{ transform: `perspective(800px) rotateY(${holdProgress * 0.06}deg) scale(${1 + holdProgress * 0.0012})` }}
+            >
+              <img src="/assets/finale/gift-closed.webp" alt="하트 보석이 달린 닫힌 선물상자" draggable="false" />
+            </button>
+            <div className="gift-hold-meter" aria-label={`선물 개봉 에너지 ${Math.round(holdProgress)}%`}>
+              <span style={{ width: `${holdProgress}%` }} />
+            </div>
+            <span className="gift-hold-hint"><Heart size={14} weight="fill" /> {holdProgress > 0 ? `두근 에너지 ${Math.round(holdProgress)}%` : "1.5초 동안 꾹 누르기 · 톡톡 4번도 가능"}</span>
+          </motion.div>
+        )}
+
+        {phase === "open" && (
+          <motion.div className="final-open-stage" key="gift-open" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 1.16 }}>
+            <FinaleBurst />
+            <motion.img
+              className="final-open-gift"
+              src="/assets/finale/gift-open.webp"
+              alt="빛나는 하트가 떠오른 열린 선물상자"
+              initial={{ scale: 0.42, opacity: 0, rotateX: 42 }}
+              animate={{ scale: [0.42, 1.14, 0.96], opacity: 1, rotateX: 0, y: [30, -8, 0] }}
+              transition={{ duration: 1.45, ease: [0.16, 0.78, 0.22, 1] }}
+            />
+            <motion.div className="final-open-copy" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.62 }}>
+              <span className="eyebrow">100 DAYS · ONE UNIVERSE</span>
+              <h2>우리의 100일 우주<br />완성!</h2>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {phase === "reveal" && (
+          <motion.div className="gift-reveal" key="gift-reveal" initial={{ opacity: 0, scale: 0.84 }} animate={{ opacity: 1, scale: 1 }} transition={{ type: "spring", stiffness: 120, damping: 14 }}>
             <span className="eyebrow">MEMORY RESTORED · 100%</span>
             <h2>꽁알아,<br />우리의 100일 우주가<br />완성됐어!</h2>
             <p>이제 잠깐 화면에서 눈을 떼고<br />바로 앞에 있는 총총이를 바라봐.</p>
@@ -634,7 +890,7 @@ export function App() {
           <MissionScreen key={`mission-${active}`} chapter={chapter} sound={sound} onBack={() => setScreen("album")} onComplete={completeChapter} />
         )}
         {screen === "finale" && (
-          <FinaleScreen key="finale" sound={sound} onBackToMap={() => { setActive(chapters.length - 1); setScreen("map"); }} />
+          <FinaleScreen key="finale" sound={sound} onToggleSound={() => setSound((value) => !value)} onBackToMap={() => { setActive(chapters.length - 1); setScreen("map"); }} />
         )}
       </AnimatePresence>
     </main>

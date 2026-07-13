@@ -1068,6 +1068,262 @@ h2,
   font-size: 12px;
 }
 
+.finale-screen {
+  perspective: 1100px;
+  background: #050a25;
+}
+
+.finale-cinematic-bg {
+  transform-origin: 50% 48%;
+  will-change: transform, filter;
+}
+
+.finale-phase-convergence .finale-shade,
+.finale-phase-gift .finale-shade,
+.finale-phase-open .finale-shade {
+  background: rgba(3, 7, 34, 0.5);
+}
+
+.final-cinematic-stage,
+.final-gift-stage,
+.final-open-stage {
+  position: absolute;
+  z-index: 8;
+  inset: 0;
+  overflow: hidden;
+  text-align: center;
+  transform-style: preserve-3d;
+}
+
+.final-cinematic-copy {
+  position: absolute;
+  z-index: 12;
+  top: max(62px, calc(env(safe-area-inset-top) + 38px));
+  left: 24px;
+  right: 24px;
+  text-shadow: 0 3px 20px rgba(1, 4, 26, 0.88);
+}
+
+.final-cinematic-copy h2,
+.final-open-copy h2 {
+  margin-top: 7px;
+  font-family: "Jua", sans-serif;
+  font-size: 31px;
+  font-weight: 400;
+  line-height: 1.08;
+  color: var(--cream);
+}
+
+.final-cinematic-copy p {
+  max-width: 310px;
+  margin: 9px auto 0;
+  font-size: 11px;
+  line-height: 1.55;
+  color: rgba(255, 248, 239, 0.76);
+}
+
+.final-memory-orbit {
+  position: absolute;
+  z-index: 2;
+  top: 238px;
+  left: 30px;
+  width: 330px;
+  height: 330px;
+  border: 1px solid rgba(255, 225, 201, 0.16);
+  border-radius: 50%;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 0 24px rgba(255, 159, 134, 0.32));
+}
+
+.final-memory-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 42px;
+  border: 1px dashed rgba(255, 241, 218, 0.14);
+  border-radius: 50%;
+}
+
+.final-orbit-planet {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 50%;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  clip-path: circle(49% at 50% 50%);
+  filter: drop-shadow(0 0 10px rgba(255, 198, 167, 0.42));
+}
+
+.final-convergence-gift {
+  position: absolute;
+  z-index: 6;
+  top: 314px;
+  left: 85px;
+  width: 220px;
+  height: 220px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 20px rgba(255, 190, 146, 0.75)) drop-shadow(0 22px 30px rgba(0, 0, 0, 0.42));
+  transform-style: preserve-3d;
+}
+
+.final-cinematic-status {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: max(78px, calc(env(safe-area-inset-bottom) + 64px));
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  padding: 8px 12px;
+  border: 1px solid rgba(255, 239, 216, 0.23);
+  border-radius: 18px;
+  color: rgba(255, 248, 239, 0.86);
+  background: rgba(10, 15, 54, 0.72);
+  transform: translateX(-50%);
+  font-size: 10px;
+}
+
+.final-cinematic-status svg {
+  color: var(--peach);
+}
+
+.gift-stage-copy {
+  top: max(58px, calc(env(safe-area-inset-top) + 34px));
+}
+
+.gift-hold-button {
+  position: absolute;
+  z-index: 5;
+  top: 238px;
+  left: 30px;
+  width: 330px;
+  height: 340px;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  filter: drop-shadow(0 0 26px rgba(255, 179, 142, 0.5)) drop-shadow(0 24px 36px rgba(0, 0, 0, 0.44));
+  transform-origin: 50% 60%;
+  transition: filter 160ms ease-out;
+  touch-action: none;
+  user-select: none;
+}
+
+.gift-hold-button:active {
+  filter: drop-shadow(0 0 42px rgba(255, 192, 145, 0.9)) drop-shadow(0 20px 30px rgba(0, 0, 0, 0.42));
+}
+
+.gift-hold-button img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+}
+
+.gift-hold-meter {
+  position: absolute;
+  z-index: 10;
+  top: 614px;
+  left: 48px;
+  right: 48px;
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 239, 216, 0.32);
+  border-radius: 7px;
+  background: rgba(8, 14, 52, 0.72);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+}
+
+.gift-hold-meter span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--peach);
+  box-shadow: 0 0 18px rgba(255, 185, 145, 0.82);
+  transition: width 90ms linear;
+}
+
+.gift-hold-hint {
+  position: absolute;
+  z-index: 10;
+  top: 635px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: rgba(255, 248, 239, 0.76);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.8);
+  font-size: 10px;
+}
+
+.gift-hold-hint svg {
+  color: var(--peach);
+}
+
+.final-open-gift {
+  position: absolute;
+  z-index: 8;
+  top: 178px;
+  left: 15px;
+  width: 360px;
+  height: 430px;
+  object-fit: contain;
+  filter: drop-shadow(0 0 42px rgba(255, 202, 149, 0.92)) drop-shadow(0 28px 44px rgba(0, 0, 0, 0.4));
+  transform-style: preserve-3d;
+}
+
+.finale-burst {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  top: 46%;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.finale-burst-piece {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: grid;
+  place-items: center;
+  color: #ffd3a9;
+  filter: drop-shadow(0 0 8px currentColor);
+}
+
+.finale-burst-piece.burst-kind-0 {
+  color: #ff8c86;
+}
+
+.finale-burst-piece.burst-kind-1 {
+  color: #ffe6a8;
+}
+
+.finale-burst-piece.burst-kind-2 {
+  color: #cfb7ff;
+}
+
+.final-open-copy {
+  position: absolute;
+  z-index: 14;
+  top: 625px;
+  left: 20px;
+  right: 20px;
+  text-align: center;
+  text-shadow: 0 3px 22px rgba(1, 4, 26, 0.9);
+}
+
+.final-open-copy h2 {
+  font-size: 34px;
+}
+
 @media (max-height: 740px) {
   .intro-copy {
     top: 48px;
@@ -1125,6 +1381,39 @@ h2,
   .final-journey,
   .gift-message {
     margin-top: 270px;
+  }
+
+  .final-cinematic-copy {
+    top: 48px;
+  }
+
+  .final-memory-orbit {
+    top: 186px;
+    transform: scale(0.84);
+  }
+
+  .final-convergence-gift {
+    top: 244px;
+  }
+
+  .gift-hold-button {
+    top: 182px;
+  }
+
+  .gift-hold-meter {
+    top: 530px;
+  }
+
+  .gift-hold-hint {
+    top: 550px;
+  }
+
+  .final-open-gift {
+    top: 124px;
+  }
+
+  .final-open-copy {
+    top: 560px;
   }
 }
 

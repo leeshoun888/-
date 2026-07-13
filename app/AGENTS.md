@@ -18,5 +18,6 @@ When implementing from a selected generated mock, treat that image as the source
 - The finale is a short cinematic sequence: ten planets converge, 꽁알이 holds or taps a real 3D gift asset to open it, then layered sound/haptic/particle effects lead into the physical-present handoff.
 - Audio is on by default after the browser's first allowed user gesture: a continuous original fairytale-romance music-box score persists across screens, with distinct cute sound cues for buttons, transitions, planet zooms, photo changes, mission gestures, success, and finale beats.
 - KakaoTalk WebView compatibility is required: audio must be unlocked from a real click/tap, with a loopable HTML audio track as the BGM fallback and Web Audio retained for interactive sound effects.
+- The map exposes a confirmed progress-reset action whenever progress exists; it clears only the saved completion state and returns the player to the intro.
 - Final reward copy must direct the player to receive the physical present from 총총이; no digital letter appears in the app.
 - Render deployment happens only after local mobile verification is complete and the user approves.

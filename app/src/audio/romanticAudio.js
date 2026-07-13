@@ -382,6 +382,9 @@ class RomanticAudio {
       [NOTE.C5, NOTE.E5, NOTE.G5].forEach((frequency, index) => this.bell(frequency, now + index * 0.07, 0.075, 0.48, this.sfxBus));
     } else if (name === "back") {
       [NOTE.G5, NOTE.E5, NOTE.C5].forEach((frequency, index) => this.bell(frequency, now + index * 0.055, 0.055, 0.34, this.sfxBus));
+    } else if (name === "reset") {
+      this.noise(now, 0.38, 0.025, 1700, "bandpass");
+      [NOTE.C6, NOTE.G5, NOTE.E5, NOTE.C5].forEach((frequency, index) => this.bell(frequency, now + index * 0.075, 0.065, 0.46, this.sfxBus));
     } else if (name === "transition") {
       this.noise(now, 0.42, 0.034, 950, "bandpass");
       this.tone(NOTE.C5, now, 0.4, 0.055, "triangle", this.sfxBus, NOTE.G5);

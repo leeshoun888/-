@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
+  ArrowCounterClockwise,
   ArrowRight,
   CheckCircle,
   Gift,
@@ -117,11 +118,12 @@ const planetPositions = [
   { x: 70, y: 78, size: 96, depth: 2 },
 ];
 
-function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen, onFinale }) {
+function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen, onFinale, onResetProgress }) {
   const chapter = chapters[active];
   const percentage = Math.round((completed / chapters.length) * 100);
   const isFinalComplete = completed === chapters.length && active === chapters.length - 1;
   const [focused, setFocused] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
 
   useEffect(() => {
     chapters.forEach((_, index) => {
@@ -146,6 +148,12 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
         <div className="progress-label">
           <span>기억 복구율</span>
           <strong>{percentage}%</strong>
+          {!focused && completed > 0 && (
+            <button className="reset-progress-button" type="button" onClick={() => setResetOpen(true)}>
+              <ArrowCounterClockwise size={13} weight="bold" />
+              처음부터
+            </button>
+          )}
         </div>
         <ProgressStars completed={completed} active={active} onSelect={visitPlanet} />
       </header>
@@ -246,6 +254,40 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
           <motion.div className="map-orbit-hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <Star size={13} weight="fill" />
             {completed === chapters.length ? "10개의 행성을 자유롭게 여행해봐" : `${completed + 1}번째 행성이 꽁알이를 기다리고 있어`}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {resetOpen && (
+          <motion.div
+            className="reset-progress-overlay"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reset-progress-title"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button className="reset-progress-backdrop" type="button" aria-label="초기화 취소" onClick={() => setResetOpen(false)} />
+            <motion.div
+              className="reset-progress-card"
+              initial={{ opacity: 0, y: 18, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.94 }}
+              transition={{ type: "spring", stiffness: 230, damping: 20 }}
+            >
+              <span className="reset-progress-icon" aria-hidden="true">✨</span>
+              <h2 id="reset-progress-title">추억 여행을<br />처음부터 시작할까?</h2>
+              <p>복구 기록만 0%로 돌아가고<br />우리 사진과 추억은 그대로야.</p>
+              <div className="reset-progress-actions">
+                <button type="button" className="reset-cancel-button" onClick={() => setResetOpen(false)}>계속 여행하기</button>
+                <button type="button" className="reset-confirm-button" onClick={onResetProgress}>
+                  <ArrowCounterClockwise size={16} weight="bold" />
+                  0%로 처음부터
+                </button>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -867,6 +909,14 @@ export function App() {
     goTo("map", "launch");
   };
 
+  const resetProgress = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    setCompleted(0);
+    setActive(0);
+    romanticAudio.sfx("reset");
+    setScreen("intro");
+  };
+
   return (
     <main
       className="mobile-prototype"
@@ -890,6 +940,7 @@ export function App() {
             onToggleSound={toggleSound}
             onOpen={() => goTo("album", "launch")}
             onFinale={() => goTo("finale", "finaleArrival")}
+            onResetProgress={resetProgress}
           />
         )}
         {screen === "album" && (

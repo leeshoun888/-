@@ -117,6 +117,7 @@ function IntroScreen({ sound, onToggleSound, onStart }) {
 function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen, onFinale }) {
   const chapter = chapters[active];
   const percentage = Math.round((completed / chapters.length) * 100);
+  const isFinalComplete = completed === chapters.length && active === chapters.length - 1;
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   const handlePointerMove = (event) => {
@@ -145,12 +146,18 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
         <h2>{chapter.title}</h2>
         <p>{chapter.note}</p>
       </div>
-      <div className="bottom-actions">
-        {completed === chapters.length && active === chapters.length - 1 ? (
-          <button className="primary-button" onClick={onFinale}>
-            <Gift size={22} weight="fill" />
-            선물 엔딩 다시 보기
-          </button>
+      <div className={`bottom-actions ${isFinalComplete ? "finale-actions" : ""}`}>
+        {isFinalComplete ? (
+          <>
+            <button className="primary-button" onClick={onOpen}>
+              <Star size={22} weight="fill" />
+              꽁알이와 총총이 행성 플레이
+            </button>
+            <button className="secondary-button map-finale-button" onClick={onFinale}>
+              <Gift size={20} weight="fill" />
+              선물 엔딩 다시 보기
+            </button>
+          </>
         ) : (
           <button className="primary-button" onClick={onOpen} disabled={active > completed}>
             <Star size={22} weight="fill" />

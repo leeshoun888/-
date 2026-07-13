@@ -229,6 +229,20 @@ h2,
   border: 1px solid rgba(255, 241, 220, 0.3);
 }
 
+.map-finale-button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.finale-actions {
+  gap: 8px;
+}
+
 .micro-copy {
   font-size: 10px;
   color: rgba(255, 248, 239, 0.7);

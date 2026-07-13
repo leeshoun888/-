@@ -1,4 +1,4 @@
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, writeFile } from "node:fs/promises";
 import { extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import sharp from "sharp";
@@ -11,6 +11,13 @@ const sourcePath = fileURLToPath(sourceDir);
 const outputPath = fileURLToPath(outputDir);
 
 await mkdir(outputDir, { recursive: true });
+
+// Remove previously generated files so excluded photos cannot survive as stale assets.
+for (const entry of await readdir(outputDir, { withFileTypes: true })) {
+  if (entry.isFile() && entry.name.endsWith(".webp")) {
+    await rm(join(outputPath, entry.name));
+  }
+}
 
 const sourceFiles = (await readdir(sourceDir, { withFileTypes: true }))
   .filter((entry) => entry.isFile() && /\.(jpe?g|png)$/i.test(entry.name))
@@ -28,6 +35,15 @@ for (const { actual, normalized: filename } of sourceFiles) {
   const month = dated ? dated[1] : "04";
   const day = dated ? dated[2] : "25";
   const rawCaption = dated ? dated[3] : basename;
+
+  // The first hat-date photo was intentionally removed; keep only photo 2.
+  if (month === "04" && day === "18" && rawCaption?.trim() === "모자쓰고 데이트") {
+    continue;
+  }
+
+  const caption = rawCaption?.trim() === "모자쓰고 데이트2"
+    ? "모자쓰고 데이트한 날"
+    : rawCaption?.trim();
   const dateKey = `${month}-${day}`;
   const nextIndex = (counters.get(dateKey) ?? 0) + 1;
   counters.set(dateKey, nextIndex);
@@ -48,7 +64,7 @@ for (const { actual, normalized: filename } of sourceFiles) {
     id: safeName.replace(/\.[^.]+$/, ""),
     date: `2026-${dateKey}`,
     displayDate: `${Number(month)}월 ${Number(day)}일`,
-    caption: rawCaption?.trim() || `${Number(month)}월 ${Number(day)}일의 우리`,
+    caption: caption || `${Number(month)}월 ${Number(day)}일의 우리`,
     src: `/photos/${safeName}`,
   });
 }

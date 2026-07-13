@@ -18,6 +18,9 @@ class RomanticAudio {
     this.started = false;
     this.loopTimer = null;
     this.loopIndex = 0;
+    this.loopBeat = 0.48;
+    this.loopDuration = this.loopBeat * 16;
+    this.nextLoopAt = 0;
     this.lastTickAt = 0;
   }
 
@@ -78,7 +81,8 @@ class RomanticAudio {
     if (context.state === "suspended") context.resume().catch(() => {});
     if (!this.started) {
       this.started = true;
-      this.scheduleBgmLoop();
+      this.nextLoopAt = context.currentTime + 0.1;
+      this.pumpBgmScheduler();
     }
   }
 
@@ -135,12 +139,28 @@ class RomanticAudio {
     source.start(start);
   }
 
-  scheduleBgmLoop() {
+  pumpBgmScheduler() {
     if (!this.context || !this.started) return;
-    const beat = 0.48;
-    const loopBeats = 16;
-    const loopDuration = beat * loopBeats;
-    const start = this.context.currentTime + 0.08;
+    const now = this.context.currentTime;
+
+    // Background-tab throttling can pause the scheduler. Skip missed cycles instead
+    // of trying to play several old loops at once when the page becomes active again.
+    if (this.nextLoopAt < now - 0.08) this.nextLoopAt = now + 0.08;
+
+    let scheduled = 0;
+    while (this.nextLoopAt < now + 0.9 && scheduled < 2) {
+      this.scheduleBgmLoop(this.nextLoopAt);
+      this.nextLoopAt += this.loopDuration;
+      scheduled += 1;
+    }
+
+    window.clearTimeout(this.loopTimer);
+    this.loopTimer = window.setTimeout(() => this.pumpBgmScheduler(), 180);
+  }
+
+  scheduleBgmLoop(start) {
+    if (!this.context || !this.started) return;
+    const beat = this.loopBeat;
     const chords = [
       [NOTE.C3, NOTE.E3, NOTE.G3],
       [NOTE.A3 / 2, NOTE.C3, NOTE.E3],
@@ -160,10 +180,10 @@ class RomanticAudio {
     chords.forEach((chord, chordIndex) => {
       const chordStart = start + chordIndex * beat * 4;
       chord.forEach((frequency, noteIndex) => {
-        this.tone(frequency, chordStart, beat * 4.35, 0.021 - noteIndex * 0.002, "triangle", this.bgmBus);
+        this.tone(frequency, chordStart, beat * 3.9, 0.021 - noteIndex * 0.002, "triangle", this.bgmBus);
       });
       arpeggios[chordIndex].forEach((frequency, step) => {
-        this.bell(frequency, chordStart + step * beat, 0.032, beat * 1.55, this.bgmBus);
+        this.bell(frequency, chordStart + step * beat, 0.032, beat * 0.92, this.bgmBus);
       });
     });
 
@@ -176,8 +196,16 @@ class RomanticAudio {
     });
 
     this.loopIndex += 1;
+  }
+
+  dispose() {
     window.clearTimeout(this.loopTimer);
-    this.loopTimer = window.setTimeout(() => this.scheduleBgmLoop(), Math.max(500, (loopDuration - 0.32) * 1000));
+    this.started = false;
+    if (this.master && this.context) {
+      this.master.gain.cancelScheduledValues(this.context.currentTime);
+      this.master.gain.setValueAtTime(0.0001, this.context.currentTime);
+    }
+    this.context?.close().catch(() => {});
   }
 
   playChime(notes = [NOTE.C5, NOTE.E5, NOTE.G5]) {
@@ -259,4 +287,8 @@ export const romanticAudio = new RomanticAudio();
 
 if (import.meta.env.DEV && typeof window !== "undefined") {
   window.__romanticAudio = romanticAudio;
+}
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => romanticAudio.dispose());
 }

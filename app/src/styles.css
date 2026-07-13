@@ -154,6 +154,14 @@ h2,
   right: 18px;
 }
 
+.sound-button.inline-sound-button {
+  position: static;
+  z-index: auto;
+  width: 38px;
+  height: 38px;
+  flex: 0 0 38px;
+}
+
 .intro-copy {
   position: absolute;
   z-index: 4;
@@ -601,10 +609,21 @@ h2,
   align-items: center;
 }
 
-.album-header > div {
+.album-header > div:not(.header-audio-cluster) {
   display: grid;
   gap: 1px;
   margin-left: 10px;
+}
+
+.album-header > .header-audio-cluster {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-left: auto;
+}
+
+.header-audio-cluster .photo-count {
+  margin-left: 0;
 }
 
 .album-header span,
@@ -758,6 +777,10 @@ h2,
 
 .mission-header {
   gap: 10px;
+}
+
+.mission-header .inline-sound-button {
+  margin-left: auto;
 }
 
 .mission-copy {

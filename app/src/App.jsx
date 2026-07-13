@@ -16,6 +16,7 @@ import {
 import "@fontsource/jua";
 import "@fontsource/gowun-dodum";
 import { chapters, totalPhotos } from "./data/chapters.js";
+import { romanticAudio } from "./audio/romanticAudio.js";
 
 const STORAGE_KEY = "kkongal-chongchong-memory-progress-v2";
 const DEV_PREVIEW = import.meta.env.DEV ? new URLSearchParams(window.location.search) : null;
@@ -28,91 +29,17 @@ const FINALE_PHASES = new Set(["journey", "convergence", "gift", "open", "reveal
 const previewFinalePhase = FINALE_PHASES.has(DEV_PREVIEW?.get("finale")) ? DEV_PREVIEW.get("finale") : null;
 
 function playChime(enabled, notes = [523.25, 659.25, 783.99]) {
-  if (!enabled || typeof window === "undefined") return;
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  const context = new AudioContext();
-  notes.forEach((frequency, index) => {
-    const oscillator = context.createOscillator();
-    const gain = context.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.value = frequency;
-    gain.gain.setValueAtTime(0.0001, context.currentTime + index * 0.09);
-    gain.gain.exponentialRampToValueAtTime(0.14, context.currentTime + index * 0.09 + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + index * 0.09 + 0.45);
-    oscillator.connect(gain);
-    gain.connect(context.destination);
-    oscillator.start(context.currentTime + index * 0.09);
-    oscillator.stop(context.currentTime + index * 0.09 + 0.48);
-  });
-  window.setTimeout(() => context.close(), 900);
+  if (enabled) romanticAudio.playChime(notes);
 }
 
 function playFinaleCue(enabled, cue) {
-  if (!enabled || typeof window === "undefined") return;
-  const AudioContext = window.AudioContext || window.webkitAudioContext;
-  if (!AudioContext) return;
-  const context = new AudioContext();
-  const master = context.createGain();
-  master.gain.setValueAtTime(0.0001, context.currentTime);
-  master.gain.exponentialRampToValueAtTime(0.34, context.currentTime + 0.04);
-  master.connect(context.destination);
-
-  const tone = ({ frequency, start = 0, duration = 0.5, gain = 0.12, type = "sine", endFrequency }) => {
-    const oscillator = context.createOscillator();
-    const envelope = context.createGain();
-    oscillator.type = type;
-    oscillator.frequency.setValueAtTime(frequency, context.currentTime + start);
-    if (endFrequency) oscillator.frequency.exponentialRampToValueAtTime(endFrequency, context.currentTime + start + duration);
-    envelope.gain.setValueAtTime(0.0001, context.currentTime + start);
-    envelope.gain.exponentialRampToValueAtTime(gain, context.currentTime + start + 0.025);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + start + duration);
-    oscillator.connect(envelope);
-    envelope.connect(master);
-    oscillator.start(context.currentTime + start);
-    oscillator.stop(context.currentTime + start + duration + 0.04);
-  };
-
-  const noise = (start, duration, gainValue = 0.06) => {
-    const buffer = context.createBuffer(1, Math.ceil(context.sampleRate * duration), context.sampleRate);
-    const channel = buffer.getChannelData(0);
-    for (let index = 0; index < channel.length; index += 1) channel[index] = Math.random() * 2 - 1;
-    const source = context.createBufferSource();
-    const filter = context.createBiquadFilter();
-    const envelope = context.createGain();
-    source.buffer = buffer;
-    filter.type = "highpass";
-    filter.frequency.value = cue === "arrival" ? 680 : 1400;
-    envelope.gain.setValueAtTime(0.0001, context.currentTime + start);
-    envelope.gain.exponentialRampToValueAtTime(gainValue, context.currentTime + start + 0.03);
-    envelope.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + start + duration);
-    source.connect(filter);
-    filter.connect(envelope);
-    envelope.connect(master);
-    source.start(context.currentTime + start);
-  };
-
-  if (cue === "arrival") {
-    tone({ frequency: 120, endFrequency: 920, duration: 1.15, gain: 0.2, type: "sawtooth" });
-    noise(0.1, 1.1, 0.085);
-    [392, 523.25, 659.25, 783.99].forEach((frequency, index) => tone({ frequency, start: 0.72 + index * 0.16, duration: 0.85, gain: 0.1 }));
-    tone({ frequency: 196, start: 0.9, duration: 1.5, gain: 0.08, type: "triangle" });
-  } else {
-    noise(0, 0.72, 0.12);
-    tone({ frequency: 164.81, endFrequency: 659.25, duration: 0.72, gain: 0.2, type: "triangle" });
-    [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((frequency, index) => tone({ frequency, start: 0.12 + index * 0.13, duration: 1.2, gain: 0.115 }));
-    [261.63, 329.63, 392].forEach((frequency) => tone({ frequency, start: 0.38, duration: 2.5, gain: 0.055, type: "sine" }));
-  }
-
-  master.gain.setValueAtTime(0.34, context.currentTime + (cue === "arrival" ? 1.9 : 2.15));
-  master.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + (cue === "arrival" ? 2.7 : 3.25));
-  window.setTimeout(() => context.close(), cue === "arrival" ? 3100 : 3700);
+  if (enabled) romanticAudio.sfx(cue === "arrival" ? "finaleArrival" : "finaleOpen");
 }
 
-function SoundButton({ enabled, onToggle }) {
+function SoundButton({ enabled, onToggle, inline = false }) {
   const Icon = enabled ? SpeakerHigh : SpeakerSlash;
   return (
-    <button className="icon-button sound-button" onClick={onToggle} aria-label={enabled ? "소리 끄기" : "소리 켜기"}>
+    <button className={`icon-button sound-button ${inline ? "inline-sound-button" : ""}`} onClick={onToggle} aria-label={enabled ? "소리 끄기" : "소리 켜기"}>
       <Icon size={20} weight="fill" />
     </button>
   );
@@ -207,7 +134,7 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
     if (index > completed) return;
     setActive(index);
     setFocused(true);
-    playChime(sound, [392, 523.25, 659.25]);
+    romanticAudio.sfx("planet");
   };
 
   return (
@@ -281,7 +208,7 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
       <AnimatePresence>
         {focused && (
           <>
-            <motion.button className="map-zoom-out" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} onClick={() => setFocused(false)}>
+            <motion.button className="map-zoom-out" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} onClick={() => { romanticAudio.sfx("zoomOut"); setFocused(false); }}>
               <ArrowLeft size={16} weight="bold" />
               전체 성도 보기
             </motion.button>
@@ -326,7 +253,7 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
   );
 }
 
-function AlbumScreen({ chapter, onBack, onMission }) {
+function AlbumScreen({ chapter, sound, onToggleSound, onBack, onMission }) {
   const [photoIndex, setPhotoIndex] = useState(0);
   const photo = chapter.photos[photoIndex];
   const isLast = photoIndex === chapter.photos.length - 1;
@@ -340,7 +267,11 @@ function AlbumScreen({ chapter, onBack, onMission }) {
   }, [chapter.photos, photoIndex]);
 
   const move = (direction) => {
-    setPhotoIndex((current) => Math.min(chapter.photos.length - 1, Math.max(0, current + direction)));
+    setPhotoIndex((current) => {
+      const next = Math.min(chapter.photos.length - 1, Math.max(0, current + direction));
+      if (next !== current) romanticAudio.sfx(direction > 0 ? "photoNext" : "photoPrev");
+      return next;
+    });
   };
 
   return (
@@ -353,7 +284,10 @@ function AlbumScreen({ chapter, onBack, onMission }) {
           <span>CHAPTER {String(chapter.number).padStart(2, "0")}</span>
           <strong>{chapter.title}</strong>
         </div>
-        <span className="photo-count">{photoIndex + 1}/{chapter.photos.length}</span>
+        <div className="header-audio-cluster">
+          <span className="photo-count">{photoIndex + 1}/{chapter.photos.length}</span>
+          <SoundButton enabled={sound} onToggle={onToggleSound} inline />
+        </div>
       </header>
 
       <div className="photo-progress"><span style={{ width: `${((photoIndex + 1) / chapter.photos.length) * 100}%` }} /></div>
@@ -415,10 +349,12 @@ function MissionAction({ type, progress, setProgress }) {
   const startHold = (event) => {
     cancelAnimationFrame(holdFrame.current);
     event.currentTarget.setPointerCapture(event.pointerId);
+    romanticAudio.sfx("holdStart");
     holdStart.current = performance.now() - progress * 18;
     const tick = (now) => {
       const next = Math.min(100, (now - holdStart.current) / 18);
       setProgress(next);
+      romanticAudio.progressTick(next);
       if (next < 100) holdFrame.current = requestAnimationFrame(tick);
     };
     holdFrame.current = requestAnimationFrame(tick);
@@ -428,7 +364,11 @@ function MissionAction({ type, progress, setProgress }) {
 
   if (type === "tap") {
     return (
-      <button className="mission-heart" onClick={() => setProgress((value) => Math.min(100, value + 16.7))}>
+      <button className="mission-heart" onClick={() => setProgress((value) => {
+        const next = Math.min(100, value + 16.7);
+        romanticAudio.sfx("heartTap", { progress: next });
+        return next;
+      })}>
         <Heart size={70} weight="fill" />
         <span>톡톡!</span>
       </button>
@@ -442,7 +382,11 @@ function MissionAction({ type, progress, setProgress }) {
         onPointerDown={startHold}
         onPointerUp={stopHold}
         onPointerCancel={stopHold}
-        onClick={() => setProgress((value) => Math.min(100, value + 12.5))}
+        onClick={() => setProgress((value) => {
+          const next = Math.min(100, value + 12.5);
+          romanticAudio.sfx("heartTap", { progress: next });
+          return next;
+        })}
         aria-label="하트를 길게 누르거나 여러 번 눌러 마음 전하기"
       >
         <Heart size={70} weight="fill" />
@@ -459,22 +403,28 @@ function MissionAction({ type, progress, setProgress }) {
           const rect = event.currentTarget.getBoundingClientRect();
           dragState.current = { active: true, left: rect.left, width: rect.width };
           event.currentTarget.setPointerCapture(event.pointerId);
+          romanticAudio.sfx("dragStart");
         }}
         onPointerMove={(event) => {
           if (!dragState.current.active) return;
           const travel = dragState.current.width - 54;
           const offset = Math.min(travel, Math.max(0, event.clientX - dragState.current.left - 27));
-          setProgress((offset / travel) * 100);
+          const next = (offset / travel) * 100;
+          setProgress(next);
+          romanticAudio.progressTick(next);
         }}
         onPointerUp={(event) => {
           const travel = dragState.current.width - 54;
           const offset = Math.min(travel, Math.max(0, event.clientX - dragState.current.left - 27));
           dragState.current.active = false;
-          setProgress(offset / travel > 0.72 ? 100 : 0);
+          const reached = offset / travel > 0.72;
+          setProgress(reached ? 100 : 0);
+          romanticAudio.sfx(reached ? "success" : "dragReset");
         }}
         onPointerCancel={() => {
           dragState.current.active = false;
           setProgress(0);
+          romanticAudio.sfx("dragReset");
         }}
       >
         <Star className="destination-star" size={34} weight="fill" />
@@ -495,12 +445,17 @@ function MissionAction({ type, progress, setProgress }) {
       onPointerDown={(event) => {
         swipeState.current = { active: true, x: event.clientX };
         event.currentTarget.setPointerCapture(event.pointerId);
+        romanticAudio.sfx("dragStart");
       }}
       onPointerMove={(event) => {
         if (!swipeState.current.active) return;
         const distance = Math.abs(event.clientX - swipeState.current.x);
         swipeState.current.x = event.clientX;
-        setProgress((value) => Math.min(100, value + distance * 0.48));
+        setProgress((value) => {
+          const next = Math.min(100, value + distance * 0.48);
+          romanticAudio.progressTick(next);
+          return next;
+        });
       }}
       onPointerUp={() => { swipeState.current.active = false; }}
       onPointerCancel={() => { swipeState.current.active = false; }}
@@ -511,7 +466,7 @@ function MissionAction({ type, progress, setProgress }) {
   );
 }
 
-function MissionScreen({ chapter, sound, onBack, onComplete }) {
+function MissionScreen({ chapter, sound, onToggleSound, onBack, onComplete }) {
   const [progress, setProgress] = useState(0);
   const done = progress >= 100;
   const chimed = useRef(false);
@@ -519,7 +474,7 @@ function MissionScreen({ chapter, sound, onBack, onComplete }) {
   useEffect(() => {
     if (done && !chimed.current) {
       chimed.current = true;
-      playChime(sound);
+      romanticAudio.sfx("success");
     }
   }, [done, sound]);
 
@@ -530,6 +485,7 @@ function MissionScreen({ chapter, sound, onBack, onComplete }) {
       <header className="mission-header">
         <button className="icon-button" onClick={onBack} aria-label="사진첩으로 돌아가기"><ArrowLeft size={21} weight="bold" /></button>
         <span>행성 복구 미션</span>
+        <SoundButton enabled={sound} onToggle={onToggleSound} inline />
       </header>
 
       <div className="mission-copy">
@@ -673,11 +629,13 @@ function FinaleScreen({ sound, onToggleSound, onBackToMap }) {
     if (phase !== "gift" || openedRef.current) return;
     cancelAnimationFrame(giftHoldFrame.current);
     event.currentTarget.setPointerCapture(event.pointerId);
+    romanticAudio.sfx("holdStart");
     giftHoldStart.current = performance.now() - holdProgressRef.current * 16;
     const tick = (now) => {
       const next = Math.min(100, (now - giftHoldStart.current) / 16);
       holdProgressRef.current = next;
       setHoldProgress(next);
+      romanticAudio.progressTick(next);
       if (next >= 100) {
         openGift();
         return;
@@ -696,7 +654,7 @@ function FinaleScreen({ sound, onToggleSound, onBackToMap }) {
     const next = Math.min(100, holdProgressRef.current + 25);
     holdProgressRef.current = next;
     setHoldProgress(next);
-    playChime(sound, [440 + next * 2.2]);
+    romanticAudio.sfx("heartTap", { progress: next });
     if (next >= 100) window.setTimeout(openGift, 0);
   };
 
@@ -730,23 +688,30 @@ function FinaleScreen({ sound, onToggleSound, onBackToMap }) {
                 const rect = event.currentTarget.getBoundingClientRect();
                 journeyDrag.current = { active: true, left: rect.left, width: rect.width };
                 event.currentTarget.setPointerCapture(event.pointerId);
+                romanticAudio.sfx("dragStart");
               }}
               onPointerMove={(event) => {
                 if (!journeyDrag.current.active || phase !== "journey") return;
                 const travel = journeyDrag.current.width - 56;
                 const offset = Math.min(travel, Math.max(0, event.clientX - journeyDrag.current.left - 28));
-                setJourneyProgress((offset / travel) * 100);
+                const next = (offset / travel) * 100;
+                setJourneyProgress(next);
+                romanticAudio.progressTick(next);
               }}
               onPointerUp={(event) => {
                 const travel = journeyDrag.current.width - 56;
                 const offset = Math.min(travel, Math.max(0, event.clientX - journeyDrag.current.left - 28));
                 journeyDrag.current.active = false;
                 if (offset / travel > 0.72) arrive();
-                else setJourneyProgress(0);
+                else {
+                  setJourneyProgress(0);
+                  romanticAudio.sfx("dragReset");
+                }
               }}
               onPointerCancel={() => {
                 journeyDrag.current.active = false;
                 setJourneyProgress(0);
+                romanticAudio.sfx("dragReset");
               }}
             >
               <span className="journey-label sender">총총이</span>
@@ -853,23 +818,55 @@ export function App() {
 
   const chapter = chapters[active];
 
+  useEffect(() => {
+    romanticAudio.setEnabled(sound);
+  }, [sound]);
+
+  const toggleSound = () => {
+    setSound((current) => {
+      const next = !current;
+      romanticAudio.setEnabled(next);
+      if (next) window.setTimeout(() => romanticAudio.sfx("toggleOn"), 55);
+      return next;
+    });
+  };
+
+  const goTo = (nextScreen, cue = "transition") => {
+    romanticAudio.unlock();
+    romanticAudio.sfx(cue);
+    setScreen(nextScreen);
+  };
+
+  const startJourney = () => {
+    romanticAudio.unlock();
+    romanticAudio.sfx("launch");
+    setScreen("map");
+  };
+
   const completeChapter = () => {
     const nextCompleted = Math.max(completed, active + 1);
     setCompleted(nextCompleted);
     localStorage.setItem(STORAGE_KEY, String(nextCompleted));
     if (active === chapters.length - 1) {
-      setScreen("finale");
+      goTo("finale", "finaleArrival");
       return;
     }
     setActive(Math.min(chapters.length - 1, active + 1));
-    setScreen("map");
+    goTo("map", "launch");
   };
 
   return (
-    <main className="mobile-prototype" aria-live="polite">
+    <main
+      className="mobile-prototype"
+      aria-live="polite"
+      onPointerDownCapture={(event) => {
+        romanticAudio.unlock();
+        if (event.target.closest?.("button:not(:disabled)")) romanticAudio.sfx("press");
+      }}
+    >
       <AnimatePresence mode="wait">
         {screen === "intro" && (
-          <IntroScreen key="intro" sound={sound} onToggleSound={() => setSound((value) => !value)} onStart={() => setScreen("map")} />
+          <IntroScreen key="intro" sound={sound} onToggleSound={toggleSound} onStart={startJourney} />
         )}
         {screen === "map" && (
           <MapScreen
@@ -878,19 +875,19 @@ export function App() {
             active={active}
             setActive={setActive}
             sound={sound}
-            onToggleSound={() => setSound((value) => !value)}
-            onOpen={() => setScreen("album")}
-            onFinale={() => setScreen("finale")}
+            onToggleSound={toggleSound}
+            onOpen={() => goTo("album", "launch")}
+            onFinale={() => goTo("finale", "finaleArrival")}
           />
         )}
         {screen === "album" && (
-          <AlbumScreen key={`album-${active}`} chapter={chapter} onBack={() => setScreen("map")} onMission={() => setScreen("mission")} />
+          <AlbumScreen key={`album-${active}`} chapter={chapter} sound={sound} onToggleSound={toggleSound} onBack={() => goTo("map", "back")} onMission={() => goTo("mission", "missionStart")} />
         )}
         {screen === "mission" && (
-          <MissionScreen key={`mission-${active}`} chapter={chapter} sound={sound} onBack={() => setScreen("album")} onComplete={completeChapter} />
+          <MissionScreen key={`mission-${active}`} chapter={chapter} sound={sound} onToggleSound={toggleSound} onBack={() => goTo("album", "back")} onComplete={completeChapter} />
         )}
         {screen === "finale" && (
-          <FinaleScreen key="finale" sound={sound} onToggleSound={() => setSound((value) => !value)} onBackToMap={() => { setActive(chapters.length - 1); setScreen("map"); }} />
+          <FinaleScreen key="finale" sound={sound} onToggleSound={toggleSound} onBackToMap={() => { setActive(chapters.length - 1); goTo("map", "back"); }} />
         )}
       </AnimatePresence>
     </main>

@@ -16,5 +16,6 @@ When implementing from a selected generated mock, treat that image as the source
 - The first-date story comes from `../자료함/데이트-기록.md`; do not invent factual stories for other dates.
 - The final interaction is cute and romantic, not a thinking puzzle.
 - The finale is a short cinematic sequence: ten planets converge, 꽁알이 holds or taps a real 3D gift asset to open it, then layered sound/haptic/particle effects lead into the physical-present handoff.
+- Audio is on by default after the browser's first allowed user gesture: a continuous original fairytale-romance music-box score persists across screens, with distinct cute sound cues for buttons, transitions, planet zooms, photo changes, mission gestures, success, and finale beats.
 - Final reward copy must direct the player to receive the physical present from 총총이; no digital letter appears in the app.
 - Render deployment happens only after local mobile verification is complete and the user approves.

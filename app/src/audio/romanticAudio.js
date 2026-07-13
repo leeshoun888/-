@@ -22,6 +22,44 @@ class RomanticAudio {
     this.loopDuration = this.loopBeat * 16;
     this.nextLoopAt = 0;
     this.lastTickAt = 0;
+    this.mediaAudio = null;
+    this.mediaBgmActive = false;
+    this.mediaPlaybackFailed = false;
+    this.userUnlocked = false;
+    this.contextStateHandler = null;
+  }
+
+  prepare() {
+    this.ensureMediaAudio();
+  }
+
+  ensureMediaAudio() {
+    if (this.mediaAudio || typeof document === "undefined") return this.mediaAudio;
+
+    const audio = document.createElement("audio");
+    audio.src = `${import.meta.env.BASE_URL}assets/audio/fairytale-loop.wav`;
+    audio.loop = true;
+    audio.preload = "auto";
+    audio.volume = 0.34;
+    audio.muted = !this.enabled;
+    audio.setAttribute("playsinline", "");
+    audio.setAttribute("webkit-playsinline", "");
+    audio.setAttribute("aria-hidden", "true");
+    audio.style.display = "none";
+    audio.addEventListener("playing", () => {
+      this.mediaBgmActive = true;
+      this.mediaPlaybackFailed = false;
+      this.stopProceduralBgm();
+    });
+    audio.addEventListener("error", () => {
+      this.mediaBgmActive = false;
+      this.mediaPlaybackFailed = true;
+      this.startProceduralBgmWhenReady();
+    });
+    document.body.appendChild(audio);
+    audio.load();
+    this.mediaAudio = audio;
+    return audio;
   }
 
   ensureContext() {
@@ -72,24 +110,123 @@ class RomanticAudio {
     this.bgmBus = bgmBus;
     this.sfxBus = sfxBus;
     this.reverb = reverb;
+    this.contextStateHandler = () => {
+      if (context.state === "running" && this.mediaPlaybackFailed) this.startProceduralBgm();
+    };
+    context.addEventListener?.("statechange", this.contextStateHandler);
     return context;
+  }
+
+  primeContext(context) {
+    if (!context) return;
+    try {
+      const silentBuffer = context.createBuffer(1, 1, context.sampleRate);
+      const silentSource = context.createBufferSource();
+      silentSource.buffer = silentBuffer;
+      silentSource.connect(context.destination);
+      silentSource.start(0);
+    } catch {
+      // Some older WebViews do not need (or support) the silent-buffer primer.
+    }
+  }
+
+  playMediaBgm() {
+    const audio = this.ensureMediaAudio();
+    if (!audio || !this.enabled) return Promise.resolve(false);
+
+    audio.muted = false;
+    audio.volume = 0.34;
+    try {
+      const playResult = audio.play();
+      if (!playResult?.then) {
+        this.mediaBgmActive = !audio.paused;
+        this.mediaPlaybackFailed = audio.paused;
+        return Promise.resolve(this.mediaBgmActive);
+      }
+      return playResult
+        .then(() => {
+          this.mediaBgmActive = true;
+          this.mediaPlaybackFailed = false;
+          this.stopProceduralBgm();
+          return true;
+        })
+        .catch(() => {
+          this.mediaBgmActive = false;
+          this.mediaPlaybackFailed = true;
+          return false;
+        });
+    } catch {
+      this.mediaBgmActive = false;
+      this.mediaPlaybackFailed = true;
+      return Promise.resolve(false);
+    }
+  }
+
+  unlockFromGesture() {
+    this.userUnlocked = true;
+    const context = this.ensureContext();
+    const mediaAttempt = this.playMediaBgm();
+
+    // Both calls deliberately happen synchronously inside the real click handler.
+    // KakaoTalk's iOS/Android WebViews can reject audio after even one awaited task.
+    this.primeContext(context);
+    const resumeAttempt = context?.state === "suspended"
+      ? context.resume().catch(() => undefined)
+      : Promise.resolve();
+
+    Promise.all([mediaAttempt, resumeAttempt]).then(([mediaStarted]) => {
+      if (!mediaStarted && this.enabled) this.startProceduralBgmWhenReady();
+    });
   }
 
   unlock() {
     const context = this.ensureContext();
-    if (!context) return;
-    if (context.state === "suspended") context.resume().catch(() => {});
-    if (!this.started) {
-      this.started = true;
-      this.nextLoopAt = context.currentTime + 0.1;
-      this.pumpBgmScheduler();
+    if (this.userUnlocked && this.enabled && this.mediaAudio?.paused) {
+      this.playMediaBgm().then((mediaStarted) => {
+        if (!mediaStarted) this.startProceduralBgmWhenReady();
+      });
     }
+    if (!context) return;
+    if (this.userUnlocked && context.state === "suspended") context.resume().catch(() => {});
+    if (this.mediaPlaybackFailed) this.startProceduralBgmWhenReady();
+  }
+
+  startProceduralBgmWhenReady() {
+    if (!this.enabled || this.mediaBgmActive || !this.context) return;
+    if (this.context.state === "running") this.startProceduralBgm();
+  }
+
+  startProceduralBgm() {
+    if (!this.context || this.started || !this.enabled || this.mediaBgmActive) return;
+    this.started = true;
+    this.nextLoopAt = this.context.currentTime + 0.1;
+    this.pumpBgmScheduler();
+  }
+
+  stopProceduralBgm() {
+    if (typeof window !== "undefined") window.clearTimeout(this.loopTimer);
+    this.loopTimer = null;
+    this.started = false;
+  }
+
+  handlePageVisible() {
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") return;
+    if (!this.userUnlocked || !this.enabled) return;
+    this.unlock();
   }
 
   setEnabled(enabled) {
     this.enabled = enabled;
+    const audio = this.ensureMediaAudio();
+    if (audio) audio.muted = !enabled;
+    if (!enabled) this.stopProceduralBgm();
+    if (enabled && this.userUnlocked) {
+      this.playMediaBgm().then((mediaStarted) => {
+        if (!mediaStarted) this.startProceduralBgmWhenReady();
+      });
+    }
     if (!this.context || !this.master) return;
-    if (enabled && this.context.state === "suspended") this.context.resume().catch(() => {});
+    if (enabled && this.userUnlocked && this.context.state === "suspended") this.context.resume().catch(() => {});
     const now = this.context.currentTime;
     this.master.gain.cancelScheduledValues(now);
     this.master.gain.setValueAtTime(Math.max(0.0001, this.master.gain.value), now);
@@ -199,13 +336,20 @@ class RomanticAudio {
   }
 
   dispose() {
-    window.clearTimeout(this.loopTimer);
-    this.started = false;
+    this.stopProceduralBgm();
     if (this.master && this.context) {
       this.master.gain.cancelScheduledValues(this.context.currentTime);
       this.master.gain.setValueAtTime(0.0001, this.context.currentTime);
     }
+    if (this.contextStateHandler) this.context?.removeEventListener?.("statechange", this.contextStateHandler);
     this.context?.close().catch(() => {});
+    if (this.mediaAudio) {
+      this.mediaAudio.pause();
+      this.mediaAudio.removeAttribute("src");
+      this.mediaAudio.load();
+      this.mediaAudio.remove();
+      this.mediaAudio = null;
+    }
   }
 
   playChime(notes = [NOTE.C5, NOTE.E5, NOTE.G5]) {

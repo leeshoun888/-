@@ -819,16 +819,28 @@ export function App() {
   const chapter = chapters[active];
 
   useEffect(() => {
+    romanticAudio.prepare();
     romanticAudio.setEnabled(sound);
   }, [sound]);
 
+  useEffect(() => {
+    const resumeAudio = () => romanticAudio.handlePageVisible();
+    document.addEventListener("visibilitychange", resumeAudio);
+    window.addEventListener("pageshow", resumeAudio);
+    return () => {
+      document.removeEventListener("visibilitychange", resumeAudio);
+      window.removeEventListener("pageshow", resumeAudio);
+    };
+  }, []);
+
   const toggleSound = () => {
-    setSound((current) => {
-      const next = !current;
-      romanticAudio.setEnabled(next);
-      if (next) window.setTimeout(() => romanticAudio.sfx("toggleOn"), 55);
-      return next;
-    });
+    const next = !sound;
+    romanticAudio.setEnabled(next);
+    if (next) {
+      romanticAudio.unlockFromGesture();
+      window.setTimeout(() => romanticAudio.sfx("toggleOn"), 55);
+    }
+    setSound(next);
   };
 
   const goTo = (nextScreen, cue = "transition") => {
@@ -838,7 +850,7 @@ export function App() {
   };
 
   const startJourney = () => {
-    romanticAudio.unlock();
+    romanticAudio.unlockFromGesture();
     romanticAudio.sfx("launch");
     setScreen("map");
   };
@@ -859,8 +871,8 @@ export function App() {
     <main
       className="mobile-prototype"
       aria-live="polite"
-      onPointerDownCapture={(event) => {
-        romanticAudio.unlock();
+      onClickCapture={(event) => {
+        romanticAudio.unlockFromGesture();
         if (event.target.closest?.("button:not(:disabled)")) romanticAudio.sfx("press");
       }}
     >

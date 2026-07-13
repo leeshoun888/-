@@ -26,6 +26,10 @@ const sourceFiles = (await readdir(sourceDir, { withFileTypes: true }))
 
 const counters = new Map();
 const photos = [];
+const captionCorrections = new Map([
+  ["모자쓰고 데이트2", "모자쓰고 데이트한 날"],
+  ["존예 주은이 프라 탄생한 날", "존예 주은이 프사 탄생한 날"],
+]);
 
 for (const { actual, normalized: filename } of sourceFiles) {
   const basename = filename.slice(0, -extname(filename).length);
@@ -41,9 +45,8 @@ for (const { actual, normalized: filename } of sourceFiles) {
     continue;
   }
 
-  const caption = rawCaption?.trim() === "모자쓰고 데이트2"
-    ? "모자쓰고 데이트한 날"
-    : rawCaption?.trim();
+  const trimmedCaption = rawCaption?.trim();
+  const caption = captionCorrections.get(trimmedCaption) ?? trimmedCaption;
   const dateKey = `${month}-${day}`;
   const nextIndex = (counters.get(dateKey) ?? 0) + 1;
   counters.set(dateKey, nextIndex);

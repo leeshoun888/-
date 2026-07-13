@@ -342,6 +342,254 @@ h2,
   color: rgba(255, 248, 239, 0.78);
 }
 
+.galaxy-map-screen {
+  perspective: 1100px;
+  background: #050a25;
+}
+
+.galaxy-backdrop {
+  filter: saturate(0.92) brightness(0.72);
+  transform: scale(1.04);
+}
+
+.galaxy-map-screen .map-shade {
+  background: rgba(2, 7, 31, 0.24);
+}
+
+.galaxy-overview-copy {
+  position: absolute;
+  z-index: 8;
+  top: 108px;
+  left: 20px;
+  right: 20px;
+  text-align: center;
+  text-shadow: 0 3px 18px rgba(2, 5, 28, 0.75);
+}
+
+.galaxy-overview-copy h2 {
+  margin-top: 4px;
+  font-family: "Jua", sans-serif;
+  font-size: 28px;
+  font-weight: 400;
+  line-height: 1.08;
+  color: var(--cream);
+}
+
+.galaxy-overview-copy p {
+  margin-top: 5px;
+  font-size: 10px;
+  color: rgba(255, 248, 239, 0.68);
+}
+
+.galaxy-camera {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  transform-style: preserve-3d;
+  pointer-events: none;
+}
+
+.galaxy-camera::before,
+.galaxy-camera::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: 50%;
+  top: 51%;
+  width: 310px;
+  height: 500px;
+  border: 1px solid rgba(255, 210, 184, 0.12);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(19deg);
+  transition: opacity 300ms ease;
+}
+
+.galaxy-camera::after {
+  width: 244px;
+  height: 540px;
+  border-style: dashed;
+  border-color: rgba(185, 164, 236, 0.1);
+  transform: translate(-50%, -50%) rotate(-28deg);
+}
+
+.is-focused .galaxy-camera::before,
+.is-focused .galaxy-camera::after {
+  opacity: 0.18;
+}
+
+.galaxy-planet {
+  position: absolute;
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  color: var(--cream);
+  background: transparent;
+  transform: translate(-50%, -50%);
+  transform-style: preserve-3d;
+  pointer-events: auto;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.galaxy-planet:disabled {
+  cursor: default;
+}
+
+.galaxy-planet-visual {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  transform-style: preserve-3d;
+  filter: drop-shadow(0 14px 18px rgba(0, 0, 0, 0.34));
+}
+
+.galaxy-planet.is-unlocked:not(:disabled):active .galaxy-planet-visual {
+  filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.34)) brightness(1.1);
+}
+
+.galaxy-planet.is-selected .galaxy-planet-visual {
+  filter: drop-shadow(0 0 16px rgba(255, 172, 139, 0.48)) drop-shadow(0 18px 24px rgba(0, 0, 0, 0.42));
+}
+
+.galaxy-planet.is-locked .galaxy-planet-visual {
+  filter: grayscale(0.78) brightness(0.48) drop-shadow(0 10px 14px rgba(0, 0, 0, 0.35));
+}
+
+.galaxy-planet-visual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  clip-path: circle(49% at 50% 50%);
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.planet-status-badge {
+  position: absolute;
+  right: 5%;
+  bottom: 7%;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid rgba(255, 241, 221, 0.72);
+  border-radius: 50%;
+  color: var(--cream);
+  background: rgba(11, 18, 59, 0.88);
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.28);
+}
+
+.is-focused .galaxy-planet.is-selected .planet-status-badge {
+  right: 9%;
+  bottom: 10%;
+  width: 30px;
+  height: 30px;
+  color: #fff5e7;
+  background: rgba(244, 122, 107, 0.9);
+}
+
+.galaxy-planet-label {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  justify-items: center;
+  gap: 0;
+  width: 132px;
+  margin-top: -7px;
+  margin-left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  text-shadow: 0 2px 9px rgba(0, 0, 0, 0.9);
+}
+
+.galaxy-planet-label small {
+  font-size: 8px;
+  letter-spacing: 0.13em;
+  color: var(--peach);
+}
+
+.galaxy-planet-label strong {
+  overflow: hidden;
+  width: 100%;
+  color: rgba(255, 248, 239, 0.92);
+  font-size: 10px;
+  line-height: 1.25;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.galaxy-planet.is-locked .galaxy-planet-label {
+  opacity: 0.48;
+}
+
+.map-zoom-out {
+  position: absolute;
+  z-index: 18;
+  top: 108px;
+  left: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 242, 221, 0.28);
+  border-radius: 17px;
+  color: var(--cream);
+  background: rgba(10, 16, 55, 0.82);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
+  font-size: 11px;
+}
+
+.planet-focus-copy {
+  z-index: 15;
+  top: 552px;
+}
+
+.planet-focus-copy h2 {
+  font-size: 28px;
+}
+
+.planet-focus-copy p {
+  max-width: 330px;
+  margin-inline: auto;
+  line-height: 1.45;
+}
+
+.map-visit-actions {
+  z-index: 16;
+}
+
+.map-orbit-hint {
+  position: absolute;
+  z-index: 10;
+  left: 50%;
+  bottom: max(22px, calc(env(safe-area-inset-bottom) + 14px));
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: max-content;
+  max-width: calc(100% - 40px);
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgba(255, 241, 221, 0.2);
+  border-radius: 18px;
+  color: rgba(255, 248, 239, 0.82);
+  background: rgba(10, 16, 55, 0.76);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+  transform: translateX(-50%);
+  font-size: 10px;
+  white-space: nowrap;
+}
+
+.map-orbit-hint svg {
+  flex: 0 0 auto;
+  color: var(--peach);
+}
+
 .album-header,
 .mission-header {
   position: absolute;
@@ -831,6 +1079,18 @@ h2,
 
   .map-title {
     top: 118px;
+  }
+
+  .galaxy-overview-copy {
+    top: 96px;
+  }
+
+  .planet-focus-copy {
+    top: 468px;
+  }
+
+  .map-zoom-out {
+    top: 94px;
   }
 
   .memory-card {

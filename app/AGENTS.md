@@ -10,6 +10,7 @@ When implementing from a selected generated mock, treat that image as the source
 
 - Visual source of truth: `../design-references/selected-option-1.png`.
 - Product is a portrait-first 390 × 844 mobile anniversary game in a pastel low-poly cosmic diorama style.
+- The map is a ten-planet overview: every planet has a distinct date-theme diorama, and tapping an unlocked planet performs a reversible 3D zoom-in/zoom-out visit transition.
 - The player is "꽁알이" and the sender is "총총이".
 - All supplied photos and their filename captions must remain available in the game, grouped chronologically.
 - The first-date story comes from `../자료함/데이트-기록.md`; do not invent factual stories for other dates.

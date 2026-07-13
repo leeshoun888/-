@@ -114,24 +114,42 @@ function IntroScreen({ sound, onToggleSound, onStart }) {
   );
 }
 
+const planetPositions = [
+  { x: 15, y: 29, size: 84, depth: -3 },
+  { x: 50, y: 27, size: 78, depth: 2 },
+  { x: 84, y: 31, size: 88, depth: -2 },
+  { x: 25, y: 44, size: 82, depth: 3 },
+  { x: 69, y: 44, size: 91, depth: -3 },
+  { x: 14, y: 61, size: 76, depth: 2 },
+  { x: 50, y: 59, size: 86, depth: -2 },
+  { x: 84, y: 62, size: 78, depth: 3 },
+  { x: 30, y: 78, size: 84, depth: -2 },
+  { x: 70, y: 78, size: 96, depth: 2 },
+];
+
 function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen, onFinale }) {
   const chapter = chapters[active];
   const percentage = Math.round((completed / chapters.length) * 100);
   const isFinalComplete = completed === chapters.length && active === chapters.length - 1;
-  const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const [focused, setFocused] = useState(false);
 
-  const handlePointerMove = (event) => {
-    if (event.pointerType !== "mouse") return;
-    const rect = event.currentTarget.getBoundingClientRect();
-    setTilt({
-      x: ((event.clientX - rect.left) / rect.width - 0.5) * 8,
-      y: ((event.clientY - rect.top) / rect.height - 0.5) * 6,
+  useEffect(() => {
+    chapters.forEach((_, index) => {
+      const image = new Image();
+      image.src = `/assets/planets/planet-${String(index + 1).padStart(2, "0")}.webp`;
     });
+  }, []);
+
+  const visitPlanet = (index) => {
+    if (index > completed) return;
+    setActive(index);
+    setFocused(true);
+    playChime(sound, [392, 523.25, 659.25]);
   };
 
   return (
-    <motion.section className="screen map-screen" onPointerMove={handlePointerMove} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <PlanetStage photo={chapter.cover} tilt={tilt} />
+    <motion.section className={`screen map-screen galaxy-map-screen ${focused ? "is-focused" : "is-overview"}`} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <img className="universe-bg galaxy-backdrop" src="/assets/memory-universe-bg.jpg" alt="" />
       <div className="screen-shade map-shade" />
       <SoundButton enabled={sound} onToggle={onToggleSound} />
       <header className="map-header">
@@ -139,33 +157,108 @@ function MapScreen({ completed, active, setActive, sound, onToggleSound, onOpen,
           <span>기억 복구율</span>
           <strong>{percentage}%</strong>
         </div>
-        <ProgressStars completed={completed} active={active} onSelect={setActive} />
+        <ProgressStars completed={completed} active={active} onSelect={visitPlanet} />
       </header>
-      <div className="map-title">
-        <span className="eyebrow">CHAPTER {String(chapter.number).padStart(2, "0")} · {chapter.eyebrow}</span>
-        <h2>{chapter.title}</h2>
-        <p>{chapter.note}</p>
-      </div>
-      <div className={`bottom-actions ${isFinalComplete ? "finale-actions" : ""}`}>
-        {isFinalComplete ? (
-          <>
-            <button className="primary-button" onClick={onOpen}>
-              <Star size={22} weight="fill" />
-              꽁알이와 총총이 행성 플레이
-            </button>
-            <button className="secondary-button map-finale-button" onClick={onFinale}>
-              <Gift size={20} weight="fill" />
-              선물 엔딩 다시 보기
-            </button>
-          </>
-        ) : (
-          <button className="primary-button" onClick={onOpen} disabled={active > completed}>
-            <Star size={22} weight="fill" />
-            {active < completed ? "추억 다시 보기" : "추억 복구하기"}
-          </button>
+
+      <AnimatePresence>
+        {!focused && (
+          <motion.div className="galaxy-overview-copy" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }}>
+            <span className="eyebrow">KKONGAL × CHONGCHONG</span>
+            <h2>우리의 100일 우주</h2>
+            <p>반짝이는 행성을 눌러 추억 속으로 날아가 봐</p>
+          </motion.div>
         )}
-        <span className="micro-copy">{chapter.dates[0].slice(5).replace("-", ".")} — {chapter.dates.at(-1).slice(5).replace("-", ".")}</span>
-      </div>
+      </AnimatePresence>
+
+      <motion.div
+        className="galaxy-camera"
+        animate={focused ? { scale: 1.18, rotateX: 3, rotateY: -2, y: -4 } : { scale: 1, rotateX: 0, rotateY: 0, y: 0 }}
+        transition={{ type: "spring", stiffness: 82, damping: 18, mass: 0.9 }}
+      >
+        {chapters.map((item, index) => {
+          const position = planetPositions[index];
+          const unlocked = index <= completed;
+          const selected = index === active;
+          const hiddenByFocus = focused && !selected;
+          return (
+            <motion.button
+              key={item.id}
+              type="button"
+              className={`galaxy-planet ${unlocked ? "is-unlocked" : "is-locked"} ${selected ? "is-selected" : ""}`}
+              style={{ left: `${position.x}%`, top: `${position.y}%` }}
+              animate={focused && selected
+                ? { left: "50%", top: "43%", width: 326, height: 364, opacity: 1, zIndex: 12 }
+                : { left: `${position.x}%`, top: `${position.y}%`, width: position.size, height: position.size + 30, opacity: hiddenByFocus ? 0 : 1, zIndex: selected ? 4 : 2 }}
+              transition={{ type: "spring", stiffness: 78, damping: 18, mass: 0.9 }}
+              onClick={() => visitPlanet(index)}
+              disabled={!unlocked || (focused && selected)}
+              aria-label={`${item.title} ${unlocked ? "방문하기" : "잠김"}`}
+            >
+              <motion.span
+                className="galaxy-planet-visual"
+                animate={focused && selected
+                  ? { rotateZ: position.depth * 0.6, rotateY: 360, scale: 1 }
+                  : { rotateZ: position.depth, rotateY: 0, scale: selected && !focused ? 1.08 : 1 }}
+                transition={{ rotateY: { duration: 1.05, ease: [0.2, 0.75, 0.2, 1] }, type: "spring", stiffness: 88, damping: 17 }}
+              >
+                <img src={`/assets/planets/planet-${String(index + 1).padStart(2, "0")}.webp`} alt="" draggable="false" />
+                <span className="planet-status-badge">
+                  {unlocked ? <Star size={11} weight={index < completed ? "fill" : "regular"} /> : <LockKey size={10} weight="fill" />}
+                </span>
+              </motion.span>
+              <motion.span className="galaxy-planet-label" animate={{ opacity: focused && selected ? 0 : 1 }}>
+                <small>{String(index + 1).padStart(2, "0")}</small>
+                <strong>{item.title.replace(" 행성", "")}</strong>
+              </motion.span>
+            </motion.button>
+          );
+        })}
+      </motion.div>
+
+      <AnimatePresence>
+        {focused && (
+          <>
+            <motion.button className="map-zoom-out" initial={{ opacity: 0, x: -12 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -12 }} onClick={() => setFocused(false)}>
+              <ArrowLeft size={16} weight="bold" />
+              전체 성도 보기
+            </motion.button>
+            <motion.div className="map-title planet-focus-copy" initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 14 }} transition={{ delay: 0.24 }}>
+              <span className="eyebrow">CHAPTER {String(chapter.number).padStart(2, "0")} · {chapter.eyebrow}</span>
+              <h2>{chapter.title}</h2>
+              <p>{chapter.note}</p>
+            </motion.div>
+            <motion.div className={`bottom-actions map-visit-actions ${isFinalComplete ? "finale-actions" : ""}`} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 18 }} transition={{ delay: 0.3 }}>
+              {isFinalComplete ? (
+                <>
+                  <button className="primary-button" onClick={onOpen}>
+                    <Star size={22} weight="fill" />
+                    꽁알이와 총총이 행성 플레이
+                  </button>
+                  <button className="secondary-button map-finale-button" onClick={onFinale}>
+                    <Gift size={20} weight="fill" />
+                    선물 엔딩 다시 보기
+                  </button>
+                </>
+              ) : (
+                <button className="primary-button" onClick={onOpen} disabled={active > completed}>
+                  <RocketLaunch size={22} weight="fill" />
+                  {active < completed ? "이 행성 다시 방문하기" : "이 행성에 착륙하기"}
+                </button>
+              )}
+              <span className="micro-copy">{chapter.dates[0].slice(5).replace("-", ".")} — {chapter.dates.at(-1).slice(5).replace("-", ".")}</span>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!focused && (
+          <motion.div className="map-orbit-hint" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <Star size={13} weight="fill" />
+            {completed === chapters.length ? "10개의 행성을 자유롭게 여행해봐" : `${completed + 1}번째 행성이 꽁알이를 기다리고 있어`}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.section>
   );
 }

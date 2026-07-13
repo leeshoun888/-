@@ -3,37 +3,43 @@
 ## Baseline
 
 - Reference: `../design-references/selected-option-1.png`
-- Implementation capture: `qa/implementation-map-390x844.png`
-- Side-by-side comparison: `qa/design-comparison.png`
+- Overview capture: `qa/implementation-map-v2-390x844.png`
+- Focus capture: `qa/implementation-map-focus-v2-390x844.png`
+- Side-by-side comparison: `qa/design-comparison-v2.png`
 - Viewport: 390 × 844 CSS pixels
-- State: first unlocked memory planet, 0% restored
+- State: all ten memory planets restored and available
 
 ## Visual comparison
 
-The implementation preserves the selected reference's defining hierarchy and atmosphere: deep navy star field, peach low-poly planet, centered polaroid memory, ten-node progress rail, coral primary action, and cream display typography. The live UI intentionally replaces the reference's sample title/photo with the couple's first supplied date and caption-derived chapter copy.
+The updated map preserves the selected reference's deep navy star field, peach/coral/cream hierarchy, premium low-poly diorama lighting, rounded Korean display typography, and glowing progress rail. It expands the single-planet reference into a ten-planet overview while keeping the same romantic cosmic world.
 
 | Area | Result | Evidence |
 | --- | --- | --- |
-| Composition | Passed | Header, progress rail, chapter copy, planet, photo, and CTA follow the same vertical structure. |
-| Color and lighting | Passed | Navy/coral/cream palette and soft planetary glow match the selected direction. |
-| Typography | Passed | Rounded Korean display face and restrained supporting type maintain the playful-romantic tone. |
-| Mobile fit | Passed | No clipping or horizontal overflow at 390 × 844; primary controls remain inside safe margins. |
-| Interaction affordance | Passed | Progress nodes, sound control, photo controls, missions, and final drag target have clear states. |
+| Composition | Passed | The overview keeps progress at the top, the galaxy title beneath it, ten clearly separated planets in the center, and a compact travel hint at the bottom. |
+| Planet variety | Passed | Ten compressed WebP dioramas use distinct visual themes: first date, spring walk, confession, food, cinema/art, flower garden, city walk, stargazing, reunion, and the 100-day gift finale. |
+| Color and lighting | Passed | Navy/coral/cream palette and soft planetary glow remain visually consistent with the chosen source. |
+| Typography | Passed | Rounded Korean display face and restrained supporting type preserve the playful-romantic tone. |
+| Mobile fit | Passed | No clipping or horizontal overflow at 390 × 844; all ten planet targets and labels remain visible. |
+| Interaction affordance | Passed | Unlocked/locked badges, planet labels, the zoom-out control, landing CTA, and finale replay CTA have clear states. |
 
 ## Functional QA
 
-- Intro → map → all photos in chapter 1 → mission → next planet: passed.
-- Tap, swipe, long-press/tap fallback, and drag mission mechanics: passed.
-- Finale drag → exact physical-gift handoff message: passed.
+- Full map → select finale planet → 3D zoom-in/focus view: passed.
+- Focus view → “전체 성도 보기” → reversible zoom-out/full map: passed.
+- Ten planet buttons and ten progress-rail shortcuts are present and accessible: passed.
+- Final planet still exposes both “꽁알이와 총총이 행성 플레이” and “선물 엔딩 다시 보기”: passed.
 - Browser console warnings/errors: none.
 - Production build: passed.
-- Photo manifest: 74 photos across 30 dates; 0 missing files and 0 empty dates/captions.
+- Planet image payload: 10 WebP files, about 596 KB total.
+- Photo manifest: 73 photos across 30 dates; 0 missing date/caption/source fields.
 
 ## Iteration history
 
-1. Initial implementation matched the selected low-poly memory-planet concept.
-2. Browser QA exposed unreliable drag completion under pointer automation; mission and finale drag controls were changed to explicit pointer tracking and retested successfully.
-3. Long-press mission gained an accessible repeated-tap fallback while retaining the intended hold interaction.
+1. Initial implementation matched the selected low-poly memory-planet concept with one hero planet.
+2. The map was redesigned as a complete ten-planet star chart using ten theme-specific generated dioramas.
+3. Planet visits gained a spring-based camera scale, perspective tilt, full rotation, focused landing state, and reversible zoom-out motion.
+4. Mobile QA exposed visible square image edges; circular edge clipping was applied to blend each generated star field into the shared universe background.
+5. Source and implementation were compared together in `qa/design-comparison-v2.png`; hierarchy, palette, density, and mobile fit passed.
 
 ## Final result
 
